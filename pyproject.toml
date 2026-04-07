@@ -1,0 +1,17 @@
+[project]
+name = "llm-from-scratch"
+version = "0.1.0"
+description = "LLM from scratch"
+authors = [
+    {name = "Jozef Lang"}
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
