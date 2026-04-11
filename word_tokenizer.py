@@ -1,6 +1,6 @@
 import re
 
-class Tokenizer:
+class WordTokenizer:
     UNKNOWN_TOKEN = '<|unk|>'
     END_OF_TEXT_TOKEN = '<|endoftext|>'
 
@@ -11,7 +11,7 @@ class Tokenizer:
     def encode(self, text):
         preprocessed = re.split(r'([,.:;?_!"()\']|--|\s)', text)
         preprocessed = [item.strip() for item in preprocessed if item.strip()]
-        preprocessed = [item if item in self.str_to_int else Tokenizer.UNKNOWN_TOKEN for item in preprocessed]
+        preprocessed = [item if item in self.str_to_int else WordTokenizer.UNKNOWN_TOKEN for item in preprocessed]
         ids = [self.str_to_int[s] for s in preprocessed ]
         return ids
 
@@ -27,7 +27,7 @@ class Tokenizer:
         preprocessed = re.split(r'([,.:;?_!"()\']|--|\s)', raw_text)
         preprocessed = [item.strip() for item in preprocessed if item.strip()]
         all_unique_tokens = sorted(set(preprocessed))
-        all_unique_tokens.extend([Tokenizer.END_OF_TEXT_TOKEN, Tokenizer.UNKNOWN_TOKEN])
+        all_unique_tokens.extend([WordTokenizer.END_OF_TEXT_TOKEN, WordTokenizer.UNKNOWN_TOKEN])
         vocabulary = {token: integer for integer, token in enumerate(all_unique_tokens)}
-        return Tokenizer(vocabulary)
+        return WordTokenizer(vocabulary)
 
