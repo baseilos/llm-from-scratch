@@ -1,11 +1,12 @@
 from bpe_tokenizer import BPETokenizer
 
+with open("data/the-verdict.txt", "r", encoding="utf-8") as f:
+    raw_text = f.read()
 tokenizer = BPETokenizer()
-text1 = "Hello Gisburn "
-text2 = " the course"
-text = BPETokenizer.END_OF_TEXT_TOKEN.join([text1, text2])
-print(text)
-encoded = tokenizer.encode(text)
-print("Encoded: ", encoded)
-print("Decoded: ", tokenizer.decode(encoded))
-
+enc_text = tokenizer.encode(raw_text)
+enc_sample = enc_text[50:]
+context_size = 4
+for i in range(1, context_size + 1):
+    context = enc_sample[:i]
+    desired = enc_sample[i]
+    print(context, "---->", desired)
