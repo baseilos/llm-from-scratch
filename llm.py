@@ -1,12 +1,11 @@
-from bpe_tokenizer import BPETokenizer
+from data_loader import CustomDataset
 
 with open("data/the-verdict.txt", "r", encoding="utf-8") as f:
     raw_text = f.read()
-tokenizer = BPETokenizer()
-enc_text = tokenizer.encode(raw_text)
-enc_sample = enc_text[50:]
-context_size = 4
-for i in range(1, context_size + 1):
-    context = enc_sample[:i]
-    desired = enc_sample[i]
-    print(context, "---->", desired)
+
+data_loader = CustomDataset.create_dataloader(raw_text, batch_size=8, nax_length=4, stride=4, shuffle=False)
+data_iter = iter(data_loader)
+first_batch = next(data_iter)
+second_batch = next(data_iter)
+print(first_batch)
+print(second_batch)
