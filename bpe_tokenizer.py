@@ -11,3 +11,6 @@ class BPETokenizer:
 
     def decode(self, ids):
         return self.tokenizer.decode(ids)
+
+    def vocabulary_size(self):
+        return self.tokenizer.n_vocab

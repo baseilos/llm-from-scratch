@@ -12,7 +12,7 @@ class WordTokenizer:
         preprocessed = re.split(r'([,.:;?_!"()\']|--|\s)', text)
         preprocessed = [item.strip() for item in preprocessed if item.strip()]
         preprocessed = [item if item in self.str_to_int else WordTokenizer.UNKNOWN_TOKEN for item in preprocessed]
-        ids = [self.str_to_int[s] for s in preprocessed ]
+        ids = [self.str_to_int[s] for s in preprocessed]
         return ids
 
     def decode(self, ids):

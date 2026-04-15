@@ -27,4 +27,5 @@ class CustomDataset(Dataset):
     def create_dataloader(txt, batch_size=4, nax_length=256, stride=128, shuffle=True, drop_last=True, run_workers=0):
         tokenizer = BPETokenizer()
         dataset = CustomDataset(txt, tokenizer, nax_length, stride)
-        return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last, num_workers=run_workers)
+        data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last, num_workers=run_workers)
+        return data_loader, tokenizer
