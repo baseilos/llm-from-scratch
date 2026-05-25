@@ -1,6 +1,16 @@
 import torch
 import torch.nn as nn
 
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_in, d_out, context_length, dropout, num_heads, gkv_bias = False):
+        super().__init__()
+        self.heads = nn.ModuleList(
+            [CasualAttention(d_in, d_out, context_length, dropout, gkv_bias) for _ in range(num_heads)]
+        )
+
+    def forward(self, x):
+        return torch.cat([head(x) for head in self.heads], dim=-1)
+
 class CasualAttention(nn.Module):
 
     def __init__(self, d_in, d_out, context_length, dropout, gkv_bias = False):
@@ -34,11 +44,10 @@ if __name__ == "__main__":
          [0.77, 0.25, 0.10],
          [0.05, 0.80, 0.55]]
     )
-    d_in = inputs.shape[1]
-    d_out = 2
-    batch = torch.stack([inputs, inputs], dim=0)
     torch.manual_seed(123)
+    batch = torch.stack([inputs, inputs], dim=0)
     context_length = batch.shape[1]
-    ca = CasualAttention(d_in, d_out, context_length, 0.0)
-    context_vecs = ca(batch)
+    d_in, d_out = 3, 1
+    mha = MultiHeadAttention(d_in, d_out, context_length, 0.0, 2)
+    context_vecs = mha(batch)
     print(context_vecs.shape)
