@@ -44,9 +44,15 @@ class TransformerBlock(nn.Module):
 class LayerNorm(nn.Module):
     def __init__(self, normalized_shape, eps=1e-5):
         super().__init__()
+        self.eps = eps
+        self.scale = nn.Parameter(torch.ones(normalized_shape))
+        self.bias = nn.Parameter(torch.zeros(normalized_shape))
 
     def forward(self, x):
-        return x
+        mean = x.mean(-1, keepdim=True)
+        var = x.var(-1, keepdim=True, unbiased=False)
+        normalized = (x - mean) / (var + self.eps).sqrt()
+        return normalized
 
 if __name__ == "__main__":
     tokenizer = bpe_tokenizer.BPETokenizer()
