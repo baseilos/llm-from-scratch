@@ -54,6 +54,18 @@ class LayerNorm(nn.Module):
         normalized = (x - mean) / (var + self.eps).sqrt()
         return normalized
 
+class FeedForward(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(config["embedding_dim"], config["embedding_dim"] * 4),
+            nn.GELU(),
+            nn.Linear(config["embedding_dim"] * 4, config["embedding_dim"]),
+        )
+
+    def forward(self, x):
+        return self.layers(x)
+
 if __name__ == "__main__":
     tokenizer = bpe_tokenizer.BPETokenizer()
     batch = []
