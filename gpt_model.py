@@ -94,9 +94,19 @@ class FeedForward(nn.Module):
         return self.layers(x)
 
 if __name__ == "__main__":
+    tokenizer = bpe_tokenizer.BPETokenizer()
+    batch = []
+    text1 = "Every effort moves out"
+    text2 = "Every day holds a"
+
+    batch.append(torch.tensor(tokenizer.encode(text1)))
+    batch.append(torch.tensor(tokenizer.encode(text2)))
+    batch = torch.stack(batch, dim=0)
+
     torch.manual_seed(123)
-    x = torch.rand(2, 4, 768)
-    block = TransformerBlock(GPT_CONFIG_124M)
-    output = block(x)
-    print("Input shape: ", x.shape)
-    print("Output shape: ", output.shape)
+    model = GPTModel(GPT_CONFIG_124M)
+    out = model(batch)
+
+    print("Input batch: ", batch)
+    print("Output shape: ", out.shape)
+    print(out)
