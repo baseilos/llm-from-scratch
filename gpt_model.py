@@ -13,6 +13,7 @@ GPT_CONFIG_124M = {
     "gkv_bias": False,
 }
 
+
 class GPTModel(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -34,12 +35,14 @@ class GPTModel(nn.Module):
         logits = self.output_head(x)
         return logits
 
+
 class TransformerBlock(nn.Module):
     def __init__(self, config):
         super().__init__()
 
     def forward(self, x):
         return x
+
 
 class LayerNorm(nn.Module):
     def __init__(self, normalized_shape, eps=1e-5):
@@ -54,6 +57,7 @@ class LayerNorm(nn.Module):
         normalized = (x - mean) / (var + self.eps).sqrt()
         return normalized
 
+
 class FeedForward(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -66,20 +70,41 @@ class FeedForward(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
+
+class Transformer(nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+        self.attention = MultiHeadAttention(
+            d_in=cfg["emb_dim"],
+            d_out=cfg["emb_dim"],
+            context_length=cfg["context_length"],
+            num_heads=cfg["num_heads"],
+            dropout=cfg["dropout"],
+            gkv_bias=cfg["qkv_bias"])
+        self.ff = FeedForward(cfg)
+        self.norm1 = LayerNorm(cfg["emb_dim"])
+        self.norm2 = LayerNorm(cfg["emb_dim"])
+        self.dropout_shortcut = nn.Dropout(cfg["drop_rate"])
+
+    def forward(self, x):
+        shortcut = x
+        x = self.norm1(x)
+        x = self.att(x)
+        x = self.dropout_shortcut(x)
+        x = x + shortcut
+
+        shortcut = x
+        x = self.norm1(x)
+        x = self.att(x)
+        x = self.dropout_shortcut(x)
+        x = x + shortcut
+        return x
+
+
 if __name__ == "__main__":
-    tokenizer = bpe_tokenizer.BPETokenizer()
-    batch = []
-    text1 = "Every effort moves out"
-    text2 = "Every day holds a"
-
-    batch.append(torch.tensor(tokenizer.encode(text1)))
-    batch.append(torch.tensor(tokenizer.encode(text2)))
-    batch = torch.stack(batch, dim = 0)
-    print(batch)
-
     torch.manual_seed(123)
-    model = GPTModel(GPT_CONFIG_124M)
-    logits = model(batch)
-    print("Output shape:", logits.shape)
-    print(logits)
-
+    x = torch.rand(2, 4, 768)
+    block = TransformerBlock(GPT_CONFIG_124M)
+    output = block(x)
+    print("Input shape: ", x.shape)
+    print("Output shape: ", output.shape)
