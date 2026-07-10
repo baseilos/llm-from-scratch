@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 import bpe_tokenizer
+from attention import MultiHeadAttention
 
 GPT_CONFIG_124M = {
     "vocab_size": 50257,
@@ -37,10 +38,32 @@ class GPTModel(nn.Module):
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, config):
+    def __init__(self, cfg):
         super().__init__()
+        self.attention = MultiHeadAttention(
+            d_in=cfg["embedding_dim"],
+            d_out=cfg["embedding_dim"],
+            context_length=cfg["context_length"],
+            num_heads=cfg["num_heads"],
+            dropout=cfg["drop_rate"],
+            gkv_bias=cfg["gkv_bias"])
+        self.ff = FeedForward(cfg)
+        self.norm1 = LayerNorm(cfg["embedding_dim"])
+        self.norm2 = LayerNorm(cfg["embedding_dim"])
+        self.dropout_shortcut = nn.Dropout(cfg["drop_rate"])
 
     def forward(self, x):
+        shortcut = x
+        x = self.norm1(x)
+        x = self.attention(x)
+        x = self.dropout_shortcut(x)
+        x = x + shortcut
+
+        shortcut = x
+        x = self.norm1(x)
+        x = self.attention(x)
+        x = self.dropout_shortcut(x)
+        x = x + shortcut
         return x
 
 
@@ -69,37 +92,6 @@ class FeedForward(nn.Module):
 
     def forward(self, x):
         return self.layers(x)
-
-
-class Transformer(nn.Module):
-    def __init__(self, cfg):
-        super().__init__()
-        self.attention = MultiHeadAttention(
-            d_in=cfg["emb_dim"],
-            d_out=cfg["emb_dim"],
-            context_length=cfg["context_length"],
-            num_heads=cfg["num_heads"],
-            dropout=cfg["dropout"],
-            gkv_bias=cfg["qkv_bias"])
-        self.ff = FeedForward(cfg)
-        self.norm1 = LayerNorm(cfg["emb_dim"])
-        self.norm2 = LayerNorm(cfg["emb_dim"])
-        self.dropout_shortcut = nn.Dropout(cfg["drop_rate"])
-
-    def forward(self, x):
-        shortcut = x
-        x = self.norm1(x)
-        x = self.att(x)
-        x = self.dropout_shortcut(x)
-        x = x + shortcut
-
-        shortcut = x
-        x = self.norm1(x)
-        x = self.att(x)
-        x = self.dropout_shortcut(x)
-        x = x + shortcut
-        return x
-
 
 if __name__ == "__main__":
     torch.manual_seed(123)
