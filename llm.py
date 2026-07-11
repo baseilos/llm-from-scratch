@@ -1,27 +1,52 @@
-import torch.nn
+import os
+import sys
 
-from data_loader import CustomDataset
+venv_python = os.path.join(os.path.dirname(__file__), ".venv", "bin", "python")
+venv_dir = os.path.dirname(os.path.dirname(venv_python))
+if os.path.exists(venv_python) and os.path.realpath(sys.prefix) != os.path.realpath(venv_dir):
+    os.execv(venv_python, [venv_python, __file__, *sys.argv[1:]])
 
-with open("data/the-verdict.txt", "r", encoding="utf-8") as f:
-    raw_text = f.read()
+import torch
+from gpt_model import GPTModel
+from bpe_tokenizer import BPETokenizer
 
-max_length = 4
-data_loader, tokenizer = CustomDataset.create_dataloader(raw_text, batch_size=8, nax_length=max_length, stride=max_length, shuffle=False)
-data_iter = iter(data_loader)
-inputs, target = next(data_iter)
-print("Token IDs:\n", inputs)
-print("Input shape:\n", inputs.shape)
+def text_to_token(text, tokenizer):
+    encoded = tokenizer.encode(text)
+    encoded_tensor = torch.tensor(encoded).unsqueeze(0)
+    return encoded_tensor
 
-# Create token embeddings (from inputs)
-output_dim = 256
-token_embedding_layer = torch.nn.Embedding(tokenizer.vocabulary_size(), output_dim)
-token_embeddings = token_embedding_layer(inputs)
+def token_ids_to_text(token_ids, tokenizer):
+    flat = token_ids.squeeze(0)
+    decoded = tokenizer.decode(flat.tolist())
+    return decoded
 
-# Create position embeddings
-position_embedding_layer = torch.nn.Embedding(max_length, output_dim)
-position_embeddings = position_embedding_layer(torch.arange(max_length))
-print(position_embeddings.shape)
+def generate_text_simple(model, idx, max_new_tokens, context_size):
+    for _ in range(max_new_tokens):
+        idx_cond = idx[:, -context_size:]
+        with torch.no_grad():
+            logits = model(idx_cond)
+        logits = logits[:, -1, :]
+        probas = torch.softmax(logits, dim=-1)
+        idx_next = torch.argmax(probas, dim=1, keepdim=True)
+        idx = torch.cat((idx, idx_next), dim=1)
+    return idx
 
-# Combine token embeddings and position embeddings
-input_embeddings = token_embeddings + position_embeddings
-print(input_embeddings.shape)
+GPT_CONFIG_124M = {
+    "vocab_size": 50257,
+    "context_length": 256,
+    "embedding_dim": 768,
+    "num_heads": 12,
+    "num_layers": 12,
+    "drop_rate": 0.1,
+    "gkv_bias": False,
+}
+
+if __name__ == "__main__":
+    torch.manual_seed(123)
+    model = GPTModel(GPT_CONFIG_124M)
+    model.eval()
+    tokenizer = BPETokenizer()
+    start_context = "Every effort moves you"
+
+    token_ids = generate_text_simple(model, text_to_token(start_context, tokenizer), 10, GPT_CONFIG_124M["context_length"])
+    print("Output text: ", token_ids_to_text(token_ids, tokenizer))

@@ -4,17 +4,6 @@ import torch.nn as nn
 import bpe_tokenizer
 from attention import MultiHeadAttention
 
-GPT_CONFIG_124M = {
-    "vocab_size": 50257,
-    "context_length": 1024,
-    "embedding_dim": 768,
-    "num_heads": 12,
-    "num_layers": 12,
-    "drop_rate": 0.1,
-    "gkv_bias": False,
-}
-
-
 class GPTModel(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -92,34 +81,3 @@ class FeedForward(nn.Module):
 
     def forward(self, x):
         return self.layers(x)
-
-def generate_text_simple(model, idx, max_new_tokens, context_size):
-    for _ in range(max_new_tokens):
-        idx_cond = idx[:, -context_size:]
-        with torch.no_grad():
-            logits = model(idx_cond)
-        logits = logits[:, -1, :]
-        probas = torch.softmax(logits, dim=-1)
-        idx_next = torch.argmax(probas, dim=1, keepdim=True)
-        idx = torch.cat((idx, idx_next), dim=1)
-    return idx
-
-if __name__ == "__main__":
-    tokenizer = bpe_tokenizer.BPETokenizer()
-    batch = []
-    text1 = "Every effort moves out"
-    text2 = "Every day holds a"
-
-    batch.append(torch.tensor(tokenizer.encode(text1)))
-    batch.append(torch.tensor(tokenizer.encode(text2)))
-    batch = torch.stack(batch, dim=0)
-
-    torch.manual_seed(123)
-    model = GPTModel(GPT_CONFIG_124M)
-    model.eval()
-    out = generate_text_simple(model, batch, 6, GPT_CONFIG_124M["context_length"])
-
-    for token_ids in out.tolist():
-        print(token_ids)
-        decoded_text = tokenizer.decode(token_ids)
-        print(decoded_text)
