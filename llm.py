@@ -118,9 +118,9 @@ if __name__ == "__main__":
     print("Total tokens:", total_tokens)
 
     train_ration = 0.90
-    split_idx = int(train_ration * total_tokens)
-    train_data = text_data[split_idx:]
-    val_data = text_data[:split_idx]
+    split_idx = int(train_ration * total_characters)
+    train_data = text_data[:split_idx]
+    val_data = text_data[split_idx:]
     print("Data sizes: ", len(train_data), len(val_data))
 
     train_loader = CustomDataset.create_dataloader(tokenizer,
@@ -137,8 +137,8 @@ if __name__ == "__main__":
                                                  batch_size=2,
                                                  max_length=GPT_CONFIG_124M["context_length"],
                                                  stride=GPT_CONFIG_124M["context_length"],
-                                                 drop_last=True,
-                                                 shuffle=True,
+                                                 drop_last=False,
+                                                 shuffle=False,
                                                  run_workers=0)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.1)
