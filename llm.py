@@ -1,5 +1,5 @@
 import torch
-from torch._functorch._aot_autograd import input_output_analysis
+from plotter import plot_loss
 
 from gpt_model import GPTModel
 from bpe_tokenizer import BPETokenizer
@@ -121,6 +121,7 @@ if __name__ == "__main__":
     split_idx = int(train_ration * total_tokens)
     train_data = text_data[split_idx:]
     val_data = text_data[:split_idx]
+    print("Data sizes: ", len(train_data), len(val_data))
 
     train_loader = CustomDataset.create_dataloader(tokenizer,
                                                    train_data,
@@ -141,5 +142,7 @@ if __name__ == "__main__":
                                                  run_workers=0)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.1)
-    numm_epochs = 10
-    train_losses, val_losses, tokens_seen = train_model_simple(model, train_loader, val_loader, optimizer, device, numm_epochs, 5, 5, "Every effort moves you", tokenizer)
+    num_epochs = 10
+    train_losses, val_losses, tokens_seen = train_model_simple(model, train_loader, val_loader, optimizer, device, num_epochs, 5, 5, "Every effort moves you", tokenizer)
+    epoch_tensor = torch.linspace(0, num_epochs, len(train_losses))
+    plot_loss(epoch_tensor, tokens_seen, train_losses, val_losses)
