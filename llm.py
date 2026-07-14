@@ -18,16 +18,31 @@ def token_ids_to_text(token_ids, tokenizer):
     return decoded
 
 
-def generate_text_simple(model, idx, max_new_tokens, context_size):
+def generate_text_simple(model, idx, max_new_tokens, context_size, temperature=0.0, top_k=None, eos_id=None):
     for _ in range(max_new_tokens):
         idx_cond = idx[:, -context_size:]
         with torch.no_grad():
             logits = model(idx_cond)
         logits = logits[:, -1, :]
-        probas = torch.softmax(logits, dim=-1)
-        idx_next = torch.argmax(probas, dim=1, keepdim=True)
+
+        if top_k is not None:
+            top_logits, _ = torch.topk(logits, top_k)
+            min_val = top_logits[:, -1]
+            logits = torch.where(logits < min_val, torch.tensor(float('-inf')).to(logits.device), logits)
+
+        if temperature > 0.0:
+            logits = logits / temperature
+            probs = torch.softmax(logits, dim=-1)
+            idx_next = torch.multinomial(probs, num_samples=1)
+        else:
+            idx_next = torch.argmax(logits, dim=-1, keepdim=True)
+
+        if idx_next == eos_id:
+            break
+
         idx = torch.cat((idx, idx_next), dim=1)
     return idx
+
 
 def generate_and_print_sample(model, tokenizer, device, start_context):
     model.eval()
@@ -39,12 +54,14 @@ def generate_and_print_sample(model, tokenizer, device, start_context):
     print(decoded_text.replace("\n", " "))
     model.train()
 
+
 def calc_loss_batch(input_batch, target_batch, model, device):
     input_batch = input_batch.to(device)
     target_batch = target_batch.to(device)
     logits = model(input_batch)
     loss = torch.nn.functional.cross_entropy(logits.flatten(0, 1), target_batch.flatten())
     return loss
+
 
 def calc_loss_loader(data_loader, model, device, num_batches=None):
     total_loss = 0
@@ -62,6 +79,7 @@ def calc_loss_loader(data_loader, model, device, num_batches=None):
         total_loss += loss.item()
     return total_loss / num_batches
 
+
 def evaluate_model(model, train_loader, val_loader, device, eval_iter):
     model.eval()
     with torch.no_grad():
@@ -70,7 +88,9 @@ def evaluate_model(model, train_loader, val_loader, device, eval_iter):
     model.train()
     return train_loss, val_loss
 
-def train_model_simple(model, train_loader, val_loader, optimizer, device, num_epochs, eval_freq, eval_iter, start_context, tokenizer):
+
+def train_model_simple(model, train_loader, val_loader, optimizer, device, num_epochs, eval_freq, eval_iter,
+                       start_context, tokenizer):
     train_losses, val_losses, track_token_seen = [], [], []
     tokens_seen, global_step = 0, -1
 
@@ -88,9 +108,11 @@ def train_model_simple(model, train_loader, val_loader, optimizer, device, num_e
                 train_losses.append(train_loss)
                 val_losses.append(val_loss)
                 track_token_seen.append(tokens_seen)
-                print(f"Epoch {epoch+1}, Step {global_step:06d}, Train Loss: {train_loss:.3f}, Val Loss: {val_loss:.3f}")
+                print(
+                    f"Epoch {epoch + 1}, Step {global_step:06d}, Train Loss: {train_loss:.3f}, Val Loss: {val_loss:.3f}")
         generate_and_print_sample(model, tokenizer, device, start_context)
     return train_losses, val_losses, track_token_seen
+
 
 GPT_CONFIG_124M = {
     "vocab_size": 50257,
@@ -143,6 +165,7 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.1)
     num_epochs = 10
-    train_losses, val_losses, tokens_seen = train_model_simple(model, train_loader, val_loader, optimizer, device, num_epochs, 5, 5, "Every effort moves you", tokenizer)
+    train_losses, val_losses, tokens_seen = train_model_simple(model, train_loader, val_loader, optimizer, device,
+                                                               num_epochs, 5, 5, "Every effort moves you", tokenizer)
     epoch_tensor = torch.linspace(0, num_epochs, len(train_losses))
     plot_loss(epoch_tensor, tokens_seen, train_losses, val_losses)
