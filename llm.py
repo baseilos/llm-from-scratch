@@ -167,5 +167,8 @@ if __name__ == "__main__":
     num_epochs = 10
     train_losses, val_losses, tokens_seen = train_model_simple(model, train_loader, val_loader, optimizer, device,
                                                                num_epochs, 5, 5, "Every effort moves you", tokenizer)
+
+    torch.save(model.state_dict(), "model.pth")
+
     epoch_tensor = torch.linspace(0, num_epochs, len(train_losses))
     plot_loss(epoch_tensor, tokens_seen, train_losses, val_losses)
